@@ -7,7 +7,7 @@ defmodule WebSockEx.Server do
 	def accept port do
 		{:ok, socket} = :gen_tcp.listen(port,
 											[:binary, packet: 0, active: false, reuseaddr: true])
-		Logger.info "Listening on port #{port}"
+		Logger.debug "Listening on port #{port}"
 		loop_acceptor socket
 	end
 
@@ -19,11 +19,11 @@ defmodule WebSockEx.Server do
 
 	defp serve socket do
 		{:ok, data} = :gen_tcp.recv(socket, 0) # 0 -- return all available bytes
-		Logger.info "Client connected."
+		Logger.debug "Client connected."
 		response = String.strip data |> verify_ws_connection
-		Logger.info "\nResponse: \n" <> IO.inspect response
+		Logger.debug "\nResponse: \n" <> IO.inspect response
 		:gen_tcp.send(socket, response <> "\r\n\r\n")
-		Logger.info "Response sent"
+		Logger.debug "Response sent"
 	end
 
 	def parse_handshake request do
@@ -34,11 +34,11 @@ defmodule WebSockEx.Server do
 			make_response_handshake
 	end
 
-	defp verify_ws_connection request do
+	defp verify_ws_connection request do # TODO return tuples, so client socket can be closed if needed
 		cond do
 			String.contains? request, "Upgrade:" -> parse_handshake request
 			true ->
-				Logger.info "Non-ws request received."
+				Logger.debug "Non-ws request received."
 				"HTTP/1.1 501 Not implemented\r\n\r\n"
 		end
 	end
