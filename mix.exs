@@ -12,7 +12,9 @@ defmodule WebSockEx.Mixfile do
   #
   # Type `mix help compile.app` for more information
   def application do
-    [applications: [:logger]]
+    [applications: [:logger],
+     mod: {WebSockEx, []},
+     env: [port: 4000]]
   end
 
   # Dependencies can be Hex packages:
