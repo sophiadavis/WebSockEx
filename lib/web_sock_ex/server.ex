@@ -23,7 +23,7 @@ defmodule WebSockEx.Server do
 		String.strip(packet) |>
 			handle_ws_connection |>
 			write socket
-		receive_frames socket
+		send_and_receive_frames socket
 	end
 
 	defp parse_and_make_response handshake do
@@ -51,6 +51,11 @@ defmodule WebSockEx.Server do
 
 	defp send_and_receive_frames socket do
 		{:ok, packet} = :gen_tcp.recv(socket, 0)
+		{:ok, msg} = WebSockEx.Frame.parse_frame packet
+		Logger.debug "Received message: #{inspect msg}"
+		WebSockEx.Frame.format_server_frame(msg, 1) |>
+			write socket
+		send_and_receive_frames socket
 	end
 
 	defp write response, socket do

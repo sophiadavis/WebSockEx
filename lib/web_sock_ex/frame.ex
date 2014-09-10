@@ -91,4 +91,9 @@ defmodule WebSockEx.Frame do
 					decoded <> <<bxor(m,n)::utf8>>
 	end
 
+	def format_server_frame msg, opcode do
+		# TODO deal with bigger sized messages
+		<<1::size(1), 0::size(3), opcode::size(4),
+			@no_mask::size(1), byte_size(msg)::size(7), msg::binary>>
+	end
 end
