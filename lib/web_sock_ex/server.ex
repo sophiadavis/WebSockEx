@@ -2,7 +2,7 @@ defmodule WebSockEx.Server do
 	require Logger
 
 	@ws_guid "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
-	@sec_key_pattern ~r/Sec-WebSocket-Key: (?<key>.*)($|\r\n)/r
+	@sec_key_pattern ~r"Sec-WebSocket-Key: (?<key>.*)($|\r\n)"r
 
 	def accept port do
 		{:ok, socket} = :gen_tcp.listen(port,

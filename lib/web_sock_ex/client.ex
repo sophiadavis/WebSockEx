@@ -1,7 +1,7 @@
 defmodule WebSockEx.Client do
   require Logger
 
-  @address_port_pattern ~r/(?<address>.*):(?<port>.*)/
+  @address_port_pattern ~r"(?<address>.*):(?<port>.*)"
 
   def connect host, path \\ "/" do
     [[address, port]] = Regex.scan @address_port_pattern, host, [capture: :all_names] # TODO real path parsing...
