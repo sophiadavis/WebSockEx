@@ -75,6 +75,6 @@ defmodule WebSockEx.Client do
 
   defp make_nonce do
     :crypto.rand_bytes(16) |>
-      :base64.encode
+      Base.encode64
   end
 end

@@ -151,6 +151,6 @@ defmodule WebSockEx.Server do
 
 	def make_response_secret nonce do #TODO move to new file
 		:crypto.hash(:sha, nonce <> @ws_guid) |>
-			:base64.encode
+			Base.encode64
 	end
 end
