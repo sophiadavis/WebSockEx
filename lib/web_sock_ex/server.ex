@@ -14,7 +14,7 @@ defmodule WebSockEx.Server do
 
 	defp loop_acceptor socket do
 		{:ok, client} = :gen_tcp.accept(socket)
-		serve client # TODO -- Task.Supervisor.start_child(servee...)
+		Task.Supervisor.start_child(:server_pool, fn -> serve client end)
 		loop_acceptor socket
 	end
 
@@ -52,7 +52,7 @@ defmodule WebSockEx.Server do
 
 	defp receive_frames socket do
 		{:ok, packet} = :gen_tcp.recv(socket, 0)
-		Logger.debug "Received message: #{IO.inspect parse_frame packet}"
+		Logger.debug "Received message: #{inspect parse_frame packet}"
 		receive_frames socket
 	end
 

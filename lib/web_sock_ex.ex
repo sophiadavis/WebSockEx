@@ -8,6 +8,7 @@ defmodule WebSockEx do
     {:ok, port} = Application.fetch_env(:web_sock_ex, :port)
 
     children = [
+      supervisor(Task.Supervisor, [[name: :server_pool]]),
       worker(Task, [WebSockEx.Server, :accept, [port]])
     ]
 
