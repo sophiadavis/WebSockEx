@@ -23,13 +23,13 @@ defmodule WebSockEx.Server do
 		String.strip(data) |>
 			handle_ws_connection |>
 			write socket
+		# read_frames socket
 	end
 
 	defp parse_and_make_response handshake do
-		[sec_key] = Regex.run @sec_key_pattern, handshake, [capture: :all_names]
-		data = sec_key <> @ws_guid
-		:crypto.hash(:sha, data) |>
-			:base64.encode |>
+		[nonce] = Regex.run @sec_key_pattern, handshake, [capture: :all_names]
+		nonce |>
+			make_response_secret |>
 			make_response_handshake
 	end
 
@@ -46,8 +46,17 @@ defmodule WebSockEx.Server do
 		"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: #{response_key}\r\n\r\n"
 	end
 
+	defp read_frames socket do
+		:not_implemented
+	end
+
 	defp write response, socket do
 		Logger.debug "\nResponse: \n" <> response
 		:gen_tcp.send(socket, response)
+	end
+
+	def make_response_secret nonce do #TODO move to new file
+		:crypto.hash(:sha, nonce <> @ws_guid) |>
+			:base64.encode
 	end
 end
