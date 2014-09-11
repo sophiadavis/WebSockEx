@@ -1,9 +1,11 @@
 defmodule WebSockEx.Client do
   require Logger
+  alias WebSockEx.Frame, as: Frame
+  alias WebSockEx.Socket, as: Socket
 
-  @url_pattern ~r"((?<protocol>\w+)://)?(?<address>.*):(?<port>\d+)(?<path>.*)"
+  @url_pattern         ~r"((?<protocol>\w+)://)?(?<address>.*):(?<port>\d+)(?<path>.*)"
   @http_status_pattern ~r"1.1 (?<status>\d{3})"
-  @key_hash_pattern ~r"Sec-WebSocket-Accept: (?<status>.*)(\r\n|$)"
+  @key_hash_pattern    ~r"Sec-WebSocket-Accept: (?<key>.*)(\r\n|$)"
 
   def connect url do
     {:ok, _protocol, address, port, path} = parse_url url
@@ -21,21 +23,19 @@ defmodule WebSockEx.Client do
     end
   end
 
+  def send_utf payload, socket do
+    make_masking_key |>
+      Frame.format_client_frame(payload, 1) |>
+      Socket.write socket
+    Logger.debug "Sent packet."
+    {:ok, :sent}
+  end
   defp parse_url url do
     url_map = Regex.named_captures @url_pattern, url
     IO.inspect url_map
     [{"address", address}, {"path", path}, {"port", port}, {"protocol", protocol}] = Map.to_list url_map
+    if path == "", do: path = "/"
     {:ok, protocol, address, port, path}
-  end
-
-  def send_utf payload, socket do
-    masking_key = make_masking_key
-    IO.inspect masking_key
-    masked_payload = WebSockEx.Frame.translate_payload masking_key <> <<payload::binary>>
-    packet = WebSockEx.Frame.format_client_frame masking_key, masked_payload, 1
-    :gen_tcp.send(socket, packet)
-    Logger.debug "Sent packet: #{inspect packet}"
-    {:ok, :sent}
   end
 
   defp establish_connection socket, nonce do
@@ -69,7 +69,7 @@ defmodule WebSockEx.Client do
 
   defp check_key_hash response_handshake, nonce do
     [key_hash] = Regex.run @key_hash_pattern, response_handshake, [capture: :all_names]
-    correct_hash = WebSockEx.Server.make_response_secret nonce
+    correct_hash = Frame.make_secret nonce
     correct_hash = key_hash
   end
 

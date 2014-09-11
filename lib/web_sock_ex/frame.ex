@@ -22,6 +22,8 @@ defmodule WebSockEx.Frame do
 	|                     Payload Data continued ...                |
 	+---------------------------------------------------------------+
 '''
+	@ws_guid "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
 	@no_mask <<0::size(1)>>
 	@mask 	 <<1::size(1)>>
 
@@ -113,9 +115,13 @@ defmodule WebSockEx.Frame do
 
 	def format_client_frame masking_key, payload, opcode do
 		# TODO accurate payload lengths...
-		IO.inspect payload
-		IO.inspect masking_key
+		masked_payload = translate_payload masking_key <> <<payload::binary>>
 		<<@final::bits, 0::size(3), opcode::bits, @mask::bits,
-			byte_size(payload)::size(7), masking_key::binary, payload::binary>>
+			byte_size(payload)::size(7), masking_key::binary, masked_payload>>
+	end
+
+	def make_secret nonce do #TODO move to new file
+		:crypto.hash(:sha, nonce <> @ws_guid) |>
+			Base.encode64
 	end
 end
