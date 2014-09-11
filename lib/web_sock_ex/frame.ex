@@ -59,36 +59,37 @@ defmodule WebSockEx.Frame do
 
 		cond do
 			payload_len == 126 ->
-				<<payload_len::bits-size(16), rest::bits>> = rest
+				<<payload_len::bits-size(16), payload::bits>> = rest
 			payload_len == 127 ->
-				<<payload_len::bits-size(64), rest::bits>> = rest
-			true -> rest = rest
+				<<payload_len::bits-size(64), payload::bits>> = rest
+			true -> payload = rest
 		end
-		unmask rest
+		translate_payload payload
 	end
 
 	defp parse_incomplete_frame msg, current_payload do
 		:unimplemented
 	end
 
-	defp unmask <<mask_key::bits-size(32), payload::bits>> do
+	def translate_payload <<masking_key::bits-size(32), payload::bits>> do
 	'''
 		transformed-octet-i = original-octet-i XOR masking-key-octet-(i MOD 4)
 	'''
-		unmask payload, mask_key, 0, ""
+		translate_payload payload, masking_key, 0, ""
 	end
 
-	defp unmask <<>>, _, _, decoded do
+	defp translate_payload <<>>, _, _, decoded do
 		decoded
 	end
 
-	defp unmask payload, mask_key, i, decoded do
+	defp translate_payload payload, masking_key, i, decoded do
 		<<m>> = binary_part payload, 0, 1
-		<<n>> = binary_part mask_key, rem(i, 4), 1
-		unmask binary_part(payload, 1, byte_size(payload) - 1),
-					mask_key,
+		<<n>> = binary_part masking_key, rem(i, 4), 1
+		translate_payload binary_part(payload, 1, byte_size(payload) - 1),
+					masking_key,
 					i + 1,
-					decoded <> <<bxor(m,n)::utf8>>
+					decoded <> <<bxor(m,n)>>
+	end
 	end
 
 	def format_server_frame msg, opcode do
