@@ -27,6 +27,17 @@ defmodule WebSockEx.Client do
     [{"address", address}, {"path", path}, {"port", port}, {"protocol", protocol}] = Map.to_list url_map
     {:ok, protocol, address, port, path}
   end
+
+  def send_utf payload, socket do
+    masking_key = make_masking_key
+    IO.inspect masking_key
+    masked_payload = WebSockEx.Frame.translate_payload masking_key <> <<payload::binary>>
+    packet = WebSockEx.Frame.format_client_frame masking_key, masked_payload, 1
+    :gen_tcp.send(socket, packet)
+    Logger.debug "Sent packet: #{inspect packet}"
+    {:ok, :sent}
+  end
+
   defp establish_connection socket, nonce do
     {:ok, response_handshake} = :gen_tcp.recv(socket, 0)
     Logger.debug "Got response handshake: #{inspect response_handshake}"
@@ -37,12 +48,10 @@ defmodule WebSockEx.Client do
   defp verify_response_handshake response_handshake, nonce do
     # I REALLY WANT TO TRY EXCEPT
     # if any of these don't occur (except maybe the status, the connection should fail)
+    # maybe just check for true from all of them?
     check_http_status response_handshake
-    Logger.debug " -- verified: http status code"
     true = check_for_upgrade response_handshake
-    Logger.debug " -- verified: upgrade request"
     check_key_hash response_handshake, nonce
-    Logger.debug " -- verified: key hash"
     # TODO check Sec-WebSocket-Extensions contains an extension I sent
     :ok
   end
@@ -82,5 +91,9 @@ defmodule WebSockEx.Client do
   defp make_nonce do
     :crypto.rand_bytes(16) |>
       Base.encode64
+  end
+
+  defp make_masking_key do
+    :crypto.rand_bytes(4)
   end
 end

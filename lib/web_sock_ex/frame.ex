@@ -25,6 +25,9 @@ defmodule WebSockEx.Frame do
 	@no_mask 0
 	@mask 1
 
+	@not_last_frame 0
+	@last_frame 1
+
 	def parse_frame <<fin::bits-size(1), rsvs::bits-size(3), rest::bits>> do
 		# TODO -- assert that
 		<<0::size(3)>> = rsvs
@@ -92,9 +95,11 @@ defmodule WebSockEx.Frame do
 	end
 	end
 
-	def format_server_frame msg, opcode do
-		# TODO deal with bigger sized messages
-		<<1::size(1), 0::size(3), opcode::size(4),
-			@no_mask::size(1), byte_size(msg)::size(7), msg::binary>>
+	def format_client_frame masking_key, payload, opcode do
+		# TODO accurate payload lengths...
+		IO.inspect payload
+		IO.inspect masking_key
+		<<@last_frame::size(1), 0::size(3), opcode::size(4), @mask::size(1),
+			byte_size(payload)::size(7), masking_key::binary, payload::binary>>
 	end
 end
