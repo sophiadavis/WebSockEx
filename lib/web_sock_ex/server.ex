@@ -1,7 +1,8 @@
 defmodule WebSockEx.Server do
 	require Logger
+	alias WebSockEx.Frame, as: Frame
 
-	@ws_guid "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+	@ws_guid 				 "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 	@sec_key_pattern ~r"Sec-WebSocket-Key: (?<key>.*)($|\r\n)"r
 
 	def accept port do
@@ -51,11 +52,29 @@ defmodule WebSockEx.Server do
 
 	defp send_and_receive_frames socket do
 		{:ok, packet} = :gen_tcp.recv(socket, 0)
-		{:ok, msg} = WebSockEx.Frame.parse_frame packet
-		Logger.debug "Received message: #{inspect msg}"
-		WebSockEx.Frame.format_server_frame(msg, 1) |>
-			write socket
-		send_and_receive_frames socket
+		Task.Supervisor.start_child(:connection,
+			fn -> parse_and_respond(packet, socket) end)
+	end
+
+	def parse_and_respond packet, socket do
+		case Frame.parse_frame packet do
+
+			# TODO handle fin
+			{:ok, :final, :masked, :text, payload} ->
+					Logger.debug "Received text message: #{inspect payload}"
+				Frame.format_server_frame(payload, :text) |>
+					write socket
+					send_and_receive_frames socket
+
+			{:ok, :final, :masked, :close, payload} ->
+					Logger.debug "Received close message: #{inspect payload}"
+				Frame.format_server_frame("", :close) |>
+					write socket
+					:ok = :gen_tcp.close(socket)
+			_ ->
+
+				{:error, :nomatch}
+		end
 	end
 
 	defp write response, socket do

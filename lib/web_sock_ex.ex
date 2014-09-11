@@ -8,7 +8,8 @@ defmodule WebSockEx do
     {:ok, port} = Application.fetch_env(:web_sock_ex, :port)
 
     children = [
-      supervisor(Task.Supervisor, [[name: :server_pool]]),
+      supervisor(Task.Supervisor, [[name: :server_pool]], id: :server_pool),
+      supervisor(Task.Supervisor, [[name: :connection]], id: :connection), # TODO shared state??
       worker(Task, [WebSockEx.Server, :accept, [port]])
     ]
 
